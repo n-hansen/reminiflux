@@ -28,6 +28,20 @@ const StarButton = styled.div`
 	}
 `
 
+const FetchArticleButton = styled.div`
+	display: inline-block;
+	float: right;
+	&:hover {
+		cursor: pointer;
+	}
+	svg {
+		width: 16px;
+		height: 16px;
+		padding-right: 5px;
+		padding-top: 7px;
+	}
+`
+
 const WallabagButton = styled.div`
 	display: inline-block;
 	float: right;
@@ -51,6 +65,7 @@ function wallabag(url) {
 
 function ItemViewer(props) {
 	const [item, setItem] = useState()
+	const [fetching, setFetching] = useState(false)
 	const topRef = useRef()
 
 	useHotkeys('f', () => toggleStar(), [item])
@@ -91,6 +106,23 @@ function ItemViewer(props) {
 			setItem({ ...item, starred: item.starred })
 		}
 	}
+	const fetchArticle = async () => {
+		if (item && !fetching) {
+			setFetching(true)
+			const article = await apiCall(
+				'entries/' + item.id + '/fetch-content?update_content=true',
+				(e) => {
+					setFetching(false)
+					props.errorHandler(e)
+				}
+			)
+			if (article.content) {
+				item.content = article.content
+				setItem({ ...item })
+			}
+			setFetching(false)
+		}
+	}
 	return !item ? null : (
 		<div ref={topRef}>
 			<ItemHeader>
@@ -114,6 +146,22 @@ function ItemViewer(props) {
 				<StarButton title='Toggle star' onClick={toggleStar}>
 					{String.fromCharCode(item.starred ? 9733 : 9734)}
 				</StarButton>
+				<FetchArticleButton onClick={fetchArticle}>
+					<svg role='img'>
+						<title>
+							{fetching
+								? 'Fetching article contents...'
+								: 'Fetch article content'}
+						</title>
+						<use
+							href={
+								fetching
+									? '/download.svg#hourglass'
+									: '/download.svg#download'
+							}
+						/>
+					</svg>
+				</FetchArticleButton>
 				{localStorage.getItem('wallabag') && (
 					<WallabagButton onClick={() => wallabag(item.url)}>
 						<img
